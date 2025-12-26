@@ -1,0 +1,38 @@
+databaseChangeLog:
+  - changeSet:
+      id: 001
+      author: ashish
+      changes:
+        - createTable:
+            tableName: notification_log
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+              - column:
+                  name: event_type
+                  type: VARCHAR(100)
+              - column:
+                  name: recipient
+                  type: VARCHAR(100)
+              - column:
+                  name: channel
+                  type: VARCHAR(20)
+              - column:
+                  name: message
+                  type: TEXT
+              - column:
+                  name: status
+                  type: VARCHAR(20)
+              - column:
+                  name: retry_count
+                  type: INT
+              - column:
+                  name: created_at
+                  type: TIMESTAMP
+              - column:
+                  name: updated_at
+                  type: TIMESTAMP
