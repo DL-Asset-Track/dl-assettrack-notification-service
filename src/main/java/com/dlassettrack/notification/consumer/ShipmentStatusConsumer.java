@@ -1,6 +1,5 @@
 package com.dlassettrack.notification.consumer;
 
-import com.dlassettrack.notification.consumer.dto.ShipmentStatusEvent;
 import com.dlassettrack.notification.entity.NotificationLog;
 import com.dlassettrack.notification.repository.NotificationLogRepository;
 import lombok.RequiredArgsConstructor;
@@ -17,7 +16,7 @@ import java.time.LocalDateTime;
 public class ShipmentStatusConsumer {
 
     private final NotificationLogRepository repository;
-    private final ObjectMapper objectMapper= new ObjectMapper();
+    private final ObjectMapper objectMapper;
 
     @KafkaListener(
             topics = "shipment.status.changed",
@@ -27,6 +26,11 @@ public class ShipmentStatusConsumer {
         try {
             log.info("📩 Received event: {}", message);
             var event = objectMapper.readTree(message);
+
+            if ("FAILED".equals(event.get("status").asText())) {
+                throw new RuntimeException("Simulated processing failure");
+            }
+
 
             NotificationLog logEntity = NotificationLog.builder()
                     .eventType(event.get("eventType").asText())
@@ -44,6 +48,7 @@ public class ShipmentStatusConsumer {
             log.info("✅ Notification saved successfully");
         }catch (Exception e){
             log.error("❌ Failed to process message", e);
+            throw e;
         }
     }
 }
