@@ -30,6 +30,10 @@ public class NotificationLog {
     private String status;
     private Integer retryCount;
 
+    @Column(name = "event_key", unique = true)
+    private String eventKey;
+
+
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 }

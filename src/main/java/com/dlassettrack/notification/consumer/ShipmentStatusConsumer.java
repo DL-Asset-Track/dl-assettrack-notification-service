@@ -2,6 +2,7 @@ package com.dlassettrack.notification.consumer;
 
 import com.dlassettrack.notification.entity.NotificationLog;
 import com.dlassettrack.notification.repository.NotificationLogRepository;
+import com.dlassettrack.notification.service.NotificationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.annotation.KafkaListener;
@@ -17,6 +18,7 @@ public class ShipmentStatusConsumer {
 
     private final NotificationLogRepository repository;
     private final ObjectMapper objectMapper;
+    private final NotificationService notificationService;
 
     @KafkaListener(
             topics = "shipment.status.changed",
@@ -27,12 +29,24 @@ public class ShipmentStatusConsumer {
             log.info("📩 Received event: {}", message);
             var event = objectMapper.readTree(message);
 
+            String eventKey = event.get("eventType").asText()
+                    + "_" + event.get("shipmentId").asText()
+                    + "_" + event.get("status").asText();
+
+            // 🔐 IDEMPOTENCY CHECK
+            if (repository.existsByEventKey(eventKey)) {
+                log.warn("⚠ Duplicate event detected, skipping. eventKey={}", eventKey);
+                return;
+            }
+
+
             if ("FAILED".equals(event.get("status").asText())) {
                 throw new RuntimeException("Simulated processing failure");
             }
 
 
             NotificationLog logEntity = NotificationLog.builder()
+                    .eventKey(eventKey)
                     .eventType(event.get("eventType").asText())
                     .recipient("USER_" + event.get("userId").asLong())
                     .channel("EMAIL")
@@ -44,6 +58,8 @@ public class ShipmentStatusConsumer {
                     .updatedAt(LocalDateTime.now())
                     .build();
             repository.save(logEntity);
+
+            notificationService.send(logEntity);
 
             log.info("✅ Notification saved successfully");
         }catch (Exception e){
